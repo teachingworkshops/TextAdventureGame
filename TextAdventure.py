@@ -50,6 +50,8 @@ class Interactable:
         return
 
     def use(self, player = 0):
+        if player == 0:
+            return "Who is using the {}?".format(self.name)
         return self.useCase
 
 class Room(Interactable):
@@ -73,8 +75,11 @@ class Door(Interactable):
     def lock(self, item):
         self.key = item
         
-    def setDestination(room):
-        destination = room
+    def setDestination(self, room):
+        self.destination = room
+
+    def use(self, player = 0):
+        return player.move(self)
     
 class Player(Interactable):
     def __init__(self, name = "Player", description = "Soulless Husk", room = 0):
@@ -124,8 +129,36 @@ class Player(Interactable):
         if obj == self:
             return self.checkInventory()
 
-        return "You look at the {}. {}".format(obj.name, obj.description)
+        output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
+        if (obj.contains != []):
+            if len(obj.contains) == 1:
+                output += "\nInside the {}, you see a {}".format(obj.name, obj.contains[0].name)
+            else:
+                output += "\nInside the {}, you see multible items:".format(obj.name)
+                for item in obj.contains:
+                    output += "\n-{}".format(item.name)
+        return output
     
+    def use(self, obj):
+        if obj.name == "Nothing":
+            return "You can't use that."
+        else:
+            return obj.use(player = self)
+    
+    def unlock(self, obj):
+        if type(obj) != Door:
+            output("You can't unlock the {}.".format(obj.name))
+        elif obj.key == 0:
+            output("The {} is already unlocked.".format(obj.name))
+        else:
+            if obj.key in inContainer(self):
+                output = ("You unlock the {} with the {}.".format(obj.name, obj.key.name))
+                obj.key = 0
+                return output
+            else:
+                return "You don't have a key."
+
+
     def checkInventory(self):
         output = ""
         output += "You look in your pockets.\n"
@@ -140,6 +173,27 @@ class Player(Interactable):
                 output += "-{}\n".format(item.name)
             output = output[:-1]
         return output
+
+class Key(Interactable):
+    def __init__(self, name = "Unnamed Door", description = "Blank Door", target = 0, takeAble = True):
+        super().__init__(name, description, takeAble)
+        self.target = target
+
+    def use(self, player = 0):
+        if player == 0:
+            return "Who is using the {}?".format(self.name)
+        if self.target == 0:
+            return "This key does not go anywhere new."
+        if self.target in inContainer(player.room):
+            output = "You unlock the {} with the {}".format(self.target.name, self.name)
+            self.target.key = 0
+            self.target = 0
+            return output
+            
+
+    def setTarget(self, obj):
+        self.target = obj
+
 
 """Possible Commands:
 Look
@@ -171,8 +225,15 @@ def getAlias(text):
     except:
         return text
 
+def reverseAlias(text):
 
-### Player Actions ------------------------------------------------------------------
+    output = []
+    for alias in aliases:
+        if aliases[alias] == text:
+            output.append(alias)
+    return output
+
+"""### Player Actions ------------------------------------------------------------------
 
 # TODO: Add case for looking up, down, and "around", as well as putting cases in user obj
 
@@ -197,24 +258,24 @@ def LookObject(player, object):
     if not (object in inContainer(room) or object == room):
         print("You can't see anything of that description in this room.")
         return
-    print("You see the " + object.name + ". It has the description '" + object.description + "'")
+    print("You see the " + object.name + ". It has the description '" + object.description + "'")"""
         
 # Build Room -----------------------------------------------------------------------
-user = Player("You", "It's you! Very Handsome!")
-Living = Room("Living Room", "Looks like hone.", 0, 0)
-Dining = Room("Dining Room", "It smells warm.", 0, -1)
+user = Player("Self", "It's you! Very Handsome!")
+Living = Room("Living Room", "A lovely living room, with each wall painted a different color. On the south wall, there is an oak door.", 0, 0)
+Dining = Room("Dining Room", "A cute little kitchen. There is an oak door on the north wall.", 0, -1)
 
 north_Living = Wall("North Wall", "A wall painted red, facing north.", "N")
 east_Living = Wall("East Wall", "A wall painted yellow, facing east. There is a key hanging on the wall.", "E")
-south_Living = Wall("South Wall", "A wall painted Blue, facing south. On it there is an oak door.", "S")
+south_Living = Wall("South Wall", "A wall painted Blue, facing south.", "S")
 west_Living = Wall("West Wall", "A wall painted Green, facing west. ", "W")
 
-north_Dining = Wall("Red Wall", "A wall painted red, facing north. On it there is an oak door.", "N")
+north_Dining = Wall("Red Wall", "A wall painted red, facing north.", "N")
 east_Dining = Wall("Yellow Wall", "A wall painted yellow, facing east.", "E")
 south_Dining = Wall("Blue Wall", "A wall painted Blue, facing south.", "S")
 west_Dining = Wall("Green Wall", "A wall painted Green, facing west. ", "W")
 
-brassKey = Interactable("Brass Key", "It's slightly rusted. You're not sure if brass can rust.", takeAble = True)
+brassKey = Key("Brass Key", "It's slightly rusted. You're not sure if brass can rust.", takeAble = True)
 chair = Interactable("Wooden Chair", "It looks uncomfortable.", takeAble = True)
 
 east_Living.add(brassKey)
@@ -223,7 +284,8 @@ Dining.add(chair)
 Living.add([north_Living, east_Living, south_Living, west_Living])
 Dining.add([north_Dining, east_Dining, south_Dining, west_Dining])
 
-door_south_Living = Door("Oak Door", "It looks locked.", key = 0, destination = Dining)
+door_south_Living = Door("Oak Door", "It looks unlocked.", key = brassKey, destination = Dining)
+brassKey.setTarget(door_south_Living)
 door_north_Dining = Door("Oak Door", "It looks unlocked.", key = 0, destination = Living)
 
 south_Living.add(door_south_Living)
@@ -274,13 +336,13 @@ def main():
     print("You stand in a room.")
 
     response = ""
-    while response != "quit":
+    while (response != "quit" and response != "exit"):
         response = input("> ")
-        if response == "quit":
+        if response == "quit" or response == "exit":
             continue
         if response == "debug":
-            print("Running in debug mode.")
-            debug = True
+            print("Toggling debug mode")
+            debug = not debug
             continue
 
         verb = "None"
@@ -288,7 +350,7 @@ def main():
         adjective = "None"
 
         #Define Possible Actions
-        verbs = ["look", "grab", "move"]
+        verbs = ["look", "grab", "move", "use", "unlock"] #Possible actions
         nouns = {"room" : user.room}
         adjectives = ["N", "E", "W", "S"]
         for item in inContainer(user.room):
@@ -311,12 +373,25 @@ def main():
             elif term in adjectives:
                 adjective = term
             else:
+                matches = []
                 for sub in nouns:
                     if term in sub:
-                        noun = sub
+                        matches.append(sub)
+                        #Defaults similar named objects... hmmm
+                if len(matches) == 1:
+                    noun = matches[0]
+                else: #Multible objects with similar name discrepancy
+                    if debug: print("\nMultible subjects found for term {}:".format(term))
+                    for match in matches:
+                        if debug:
+                            print("Possible Subject:" + str(match))
+                            print("Checking matches for adjective {}.".format(adjective))
+                            print(reverseAlias(adjective))
+                        for subAdjective in reverseAlias(adjective):
+                            if subAdjective in match and len(subAdjective) != 1:
+                                noun = match
+                                if debug: print("Item {} matches adjective {}.".format(match, subAdjective))
 
-        
-        
 
         #Reasign strings to objects
         subject = Interactable("Nothing", "Nothing")
@@ -328,14 +403,18 @@ def main():
             if verb == "None":
                 verb = "look"
 
-        if noun == "wall" or noun == "None": #Check for wall noun
+        if (noun == "None" and verb == "look"):
+            subject = user.room
+
+        """ #Rewritten earlier
+        if (noun == "None" and verb == "look"): #Check for wall noun or case where "look" is called with an adjective
             if adjective == "None":
                 adjective = "N"
             
-            for item in user.room.contains:
+            for item in user.room.contains: #Select wall based off adjective, defaulting to "N"
                 if type(item) == Wall:
                     if item.direction == adjective:
-                        subject = item
+                        subject = item"""
         
         if debug: print("Verb:\t\t{}\nNoun:\t\t{}\nAdjective:\t{}".format(verb, noun, adjective))
         if debug: print("Subject: {}\t".format(subject.name))
@@ -348,9 +427,17 @@ def main():
                 print(user.look(subject))
 
         if (verb == "move"): #Run "Move"
-            if subject.name == "Nothing":
-                print("You can't move there.")
-            elif type(subject) == Wall: # Case like "Move South"
+            if subject.name == "Nothing": #If command like "move north"
+                if adjective in ["N", "E", "W", "S"]:
+                    for item in inContainer(user.room):
+                        if type(item) == Wall:
+                            if item.direction == adjective:
+                                subject = item
+                    
+                else:
+                    print("You can't move there.") 
+
+            if type(subject) == Wall: # Case like "Move South"
                 for obj in inContainer(subject):
                     if type(obj) == Door:
                         subject = obj
@@ -365,6 +452,12 @@ def main():
                 print("You can't see anything of that name.")
             else:
                 print(user.grab(subject))
+
+        if (verb == "use"): #Run "Use"
+            print(user.use(subject))
+
+        if (verb == "unlock"):
+            print(user.unlock(subject))
 
 main()
 

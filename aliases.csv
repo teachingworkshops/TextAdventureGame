@@ -10,6 +10,7 @@ south,S
 down,S
 s,S
 backward,S
+back,S
 west,W
 left,W
 w,W
@@ -19,11 +20,13 @@ investigate,look
 check,look
 observe,look
 watch,look
+inspect,look
 take,grab
 steal,grab
 snatch,grab
 grip,grab
 seize,grab
+pick,grab
 walk,move
 run,move
 go,move
@@ -39,3 +42,6 @@ hands,self
 pockets,self
 player,self
 myself,self
+around,room
+surroundings,room
+everything,room
