@@ -1,0 +1,29 @@
+ + World                                             Interactable
+... + Living Room                                    Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+......... + Metal Door                               Door
+...... + South Wall                                  Wall
+......... + Oak Door                                 Door
+...... + West Wall                                   Wall
+......... + Brass Key                                Key
+...... + Self                                        Player
+... + Dining Room                                    Room
+...... + Wooden Chair                                Interactable
+...... + Wooden Crate                                Interactable
+......... - Broken Crate                             Interactable
+............ + Silvered Sword                        Interactable
+...... + Red Wall                                    Wall
+......... + Oak Door                                 Door
+...... + Yellow Wall                                 Wall
+...... + Blue Wall                                   Wall
+...... + Green Wall                                  Wall
+... + Bedroom                                        Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + West Wall                                   Wall
+......... + Metal Door                               Door
+...... + South Wall                                  Wall
+...... + Bed                                         Interactable
+......... + Monster                                  Interactable
+............ - Gold Bar                              Interactable

@@ -1,3 +1,54 @@
+"""
+There are two primary systems to this text adventure game, the objects, and the text engine.
+
+Every item in this game, including the player, is an "Interactable", with relevant statitistics based on the item type.
+One thing in common with all interactables is that they have a container, which is objects they store.
+The world is linked through several stored objects inside each other, or with links provided by door objects.
+
+The following is a list of item types with their properties:
+
+    Interactable (Base Class):
+        This is the most basic layer of class. They, and every other item, has the following properties:
+            Name: The given name of the object, which is searched when interacted with in the text engine
+            Description: A description of the object when looked at. The contained items are also displayed, so that a "Chest" item will reveal the "Treasure" inside when searched.
+            Contains: A list of contained items.
+            UseCase: Text displayed when interacted with, if not already another item.
+            TakeAble: Value determining whether object can be picked up or dropped.
+            BreakAble: Value determining whether object can be broken.
+            BrokenItem: Item dropped when broken. This can be used to "hide" items. For instance, a crate can drop a broken crate, which contains a sword. The broken crate and the sword will not be shown when the crate is inspected.
+            BreakKey: Object needed in Player's inventory to break item. Can be any Interactable.
+
+    Room: 
+        Has stored coordinates (currently UNUSED) and is pointed to by Player objects as an area to be interacted with.
+        Players can only interact with items in the same room they are in.
+
+    Wall:
+        Has a stored direction, so that when a Player "Looks Left" they are directed to the Wall in their room with the matching orientation.
+
+    Door:
+        Has a linked destination and can be locked with a defined item (currently only keys can unlock doors). 
+
+    Key:
+        Has a saved "target" to search for, assumedly a Door object. When used, if the target object is in the same room as the player, the door unlocks.
+
+    Player:
+        Has a defined room, and all actions run through Player.
+        The player's "contains" serves as the inventory for purposes of picking up and dropping objects.
+
+Nested objects can be difficult to sort through, so a helper class objectTree() was created to print out every avalible item behind a larger one.
+Hidden objects are denoted with a "-" symbol behind the item
+An example tree is attached, in the file worldTree.txt.
+                
+The text engine runs by taking user input as a string, splitting up the string into the defined noun, verb, and adjective.
+Before assigning terms, each term in the input is run through an alias dictionary, converting similar words into a set of predefined words. (Changing "Steel" to "Metal")
+In a perfect system, the noun points to an Interactable, which is then passed to a method in the Player object defined by the Verb.
+Obviously there are edge cases where assumptions have to be made, for example the input "Look" implies the noun "Room", and other similar cases.
+There are also cases where multible targets are selected, for instance, "look at wall" can imply four different walls, so the first result is defaulted to, unless an included adjective can break the tie.
+For example, "Open Oak Door" reconizes "Door" as the noun, sees "Oak Door" and "Steel Door" in room, and selects "Oak Door" from a reconized "Oak" adjective.
+
+For the purpose of debugging, the command "debug" can be run, which shows more informational data reguarding the series of events.
+"""
+
 ### ROOM SCHEMATIC
 class Interactable:
     
@@ -13,7 +64,6 @@ class Interactable:
         breakAble (boolean): Value reguarding whether object is able to be broken.
         brokenItem (boolean): Item dropping in place when Interactable is broken
         breakKey (boolean): Item that can break Interactable
-        customUseText (string): Custom text given under the "use" action
 
     Methods:
         add(item):
@@ -181,10 +231,10 @@ class Door(Interactable):
     def setDestination(self, room):
         self.destination = room
 
+    global debug
     def use(self, player = 0):
-        if self.key != 0:
-            return player.move(self)
-        return "The {} is locked.".format(self.name)
+        if debug: print("=== {} is being opened. Key: '{}'. {}.".format(self.name, self.key, self.key != 0))
+        return player.move(self)
     
 class Player(Interactable):
     """
@@ -232,6 +282,7 @@ class Player(Interactable):
             return "The {} is not in this room.".format(door.name)
         
         if door.key != 0: #Confirm door is unlocked
+            if debug: print("=== {} locked. Key: '{}'".format(door.name, door.key))
             return "The {} is locked.".format(door.name)
 
         self.room.remove(self) #Pass player through door
@@ -406,72 +457,89 @@ def reverseAlias(text):
 # Build Room -----------------------------------------------------------------------
 
 # Room creation - Currently manual but planned to be procedural.
-def generateWorld():
+def generateWorld(returnPlayer = True):
 
     """
     Generates a sample game world.
 
-    Returns player in world.
+    Parameters:
+        returnPlayer(boolean, optional): Returns Player if true, World if false.
+
+    Returns: 
+        Player in world, or world object itself if returnPlayer is false.
     """
 
+    #Creates user in rooms
     user = Player("Self", "It's you! Very Handsome!")
     Living = Room("Living Room", "A lovely living room, with each wall painted a different color. On the south wall, there is an oak door. On the east wall, there is a metal door.", 0, 0)
     Dining = Room("Dining Room", "A cute little kitchen. There is an oak door on the south wall.", 0, -1)
     Bedroom = Room("Bedroom", "A cozy bedroom. There is nothing of note inside it.", 1, 0)
 
+    #Creates Living Room Walls
     north_Living = Wall("North Wall", "A wall painted red, facing north.", "N")
     east_Living = Wall("East Wall", "A wall painted yellow, facing east.", "E")
     south_Living = Wall("South Wall", "A wall painted Blue, facing south.", "S")
     west_Living = Wall("West Wall", "A wall painted Green, facing west. There is a key hanging on the wall.", "W")
 
+    #Creates Dining Room Walls
     north_Dining = Wall("Red Wall", "A wall painted red, facing north.", "N")
     east_Dining = Wall("Yellow Wall", "A wall painted yellow, facing east.", "E")
     south_Dining = Wall("Blue Wall", "A wall painted Blue, facing south.", "S")
     west_Dining = Wall("Green Wall", "A wall painted Green, facing west. ", "W")
 
+    #Creates smaller items in rooms
     brassKey = Key("Brass Key", "It's slightly rusted. You're not sure if brass can rust.", takeAble = True)
     chair = Interactable("Wooden Chair", "It looks uncomfortable.", takeAble = True, customUseText = "You sit in the chair. It feels awful.", breakAble = True)
     broken_crate = Interactable("Broken Crate", "The crate has been broken open.", takeAble = True, customUseText = "It's not useful anymore.")
     crate = Interactable("Wooden Crate", "There doesn't look like a way to open this.", takeAble = True, customUseText = "You need to break this to see what is inside.", breakAble = True, brakeContent = broken_crate)
     sword = Interactable("Silvered Sword", "An honored family blade, kept in pristine condition", takeAble = True, customUseText = "The sword feels good in your hands.")
+    
+    #Put items in their locations
     broken_crate.add(sword)
-
     west_Living.add(brassKey)
     Dining.add(chair)
     Dining.add(crate)
-
+    
+    #Adds Walls to Rooms
     Living.add([north_Living, east_Living, south_Living, west_Living])
     Dining.add([north_Dining, east_Dining, south_Dining, west_Dining])
 
+    #Create bedroom walls
     for n in ["North", "East", "West", "South"]:
         Bedroom.add(Wall("{} Wall".format(n), "A wall on the {} side of the room.".format(n), n[0]))
 
+    #Creates bedroom objects
     Bed = Interactable("Bed", "It looks comfy.", takeAble = False, customUseText = "The bed is occupied.")
     GoldBar = Interactable("Gold Bar", "A very expensive golden bar.", customUseText = "You win!", takeAble = True)
     Monster = Interactable("Monster", "A scary guy, sleeping in the bed.", customUseText = "It doesn't want to be bothered.", breakAble = True, breakKey = sword, brakeContent = GoldBar)
 
+    #Adds bedroom objects to bedroom
     Bed.add(Monster)
     Bedroom.add(Bed)
 
+    #Adds and locks oak door
     door_south_Living = Door("Oak Door", "It has a lock on it.", key = brassKey, destination = Dining)
     brassKey.setTarget(door_south_Living)
     door_north_Dining = Door("Oak Door", "It was unlocked from the other side.", key = 0, destination = Living)
-
-    door_east_Living = Door("Steel Door", "Despite being made of metal, it is unlocked.", key = 0, destination = Bedroom)
-    east_Living.add(door_east_Living)
-    door_west_Bedroom = Door("Steel Door", "Despite being made of metal, it is unlocked.", key = 0, destination = Living)
-    Bedroom.contains[2].add(door_west_Bedroom)
-
     south_Living.add(door_south_Living)
     north_Dining.add(door_north_Dining)
 
+    #Adds Metal door
+    door_east_Living = Door("Metal Door", "Despite being made of metal, it is unlocked.", key = 0, destination = Bedroom)
+    east_Living.add(door_east_Living)
+    door_west_Bedroom = Door("Metal Door", "Despite being made of metal, it is unlocked.", key = 0, destination = Living)
+    Bedroom.contains[2].add(door_west_Bedroom)
+
+    #Adds user to living
     user.setRoom(Living)
     Living.add(user)
 
+    #Adds world object #Currently UNUSED
     world = Interactable("World", "The universe")
     world.add([Living, Dining, Bedroom])
 
-    return user
+    if returnPlayer: return user
+    return world
 
 # ------------------------------------------------------------------------------------------
 
@@ -495,27 +563,38 @@ def inContainer(obj, recursive = True):
         items.append(item)
     return items
 
-def objectTree(obj, depth = 0):
-    """Prints a tree of all known objects behind a given object. Debugging use only.
+def objectTree(obj, depth = 0, hidden = False):
+    """Prints a tree of all known objects behind a given object, including hidden objects. Debugging use only.
 
     Parameters:
         obj (Interactable): Root object for search
         depth (int, optional): Depth of recursion, used for tree visual. Defaults to 0.
+        hidden (bool, optional): Whether or not object is hidden within another object.
     """
-    print((depth * 1 * "\t") + obj.name)
+    if not hidden:
+        print((depth * 1 * "..." + " + ") + obj.name + (50 - (depth * 3 + len(obj.name))) * " " + str(type(obj).__name__))
+    else:
+        print((depth * 1 * "..." + " - ") + obj.name + (50 - (depth * 3 + len(obj.name))) * " " + str(type(obj).__name__))
     for item in obj.contains:
         objectTree(item, depth = depth + 1)
+    if obj.brokenItem != 0:
+        objectTree(obj.brokenItem, depth = depth + 1, hidden = True)
 
+#Main Game Loop
 def main():
     user = generateWorld()
 
+    global debug
     debug = False
     
-    print("You stand in a room.")
+    print("Welcome to Text Adventure! Type commands in the provided line to move yourself, interact with items, and hopefully find the secret gold bar!")
+    print("You should start by looking around the room you're in.")
 
     response = ""
     while (response != "quit" and response != "exit"): #Main play loop
+        print()
         response = input("> ")
+        print()
         if response == "quit" or response == "exit":
             continue
         if response == "debug":
@@ -535,21 +614,22 @@ def main():
             nouns[item.name.lower()] = item
 
         if debug:
-            print("Selectable Objects: ")
+            print("=== Selectable Objects: ", end = "")
             for item in nouns:
                 print(item + ", ", end="")
             print()
 
-        terms = response.split() #Parse Terms, Define Subjects
+        #Parse Terms, Define Subjects
+        terms = response.split() 
         for term in terms: 
             term = getAlias(term)
-            if term in verbs:
+            if term in verbs: #Locks in terms based off predefined verbs, nouns, and adjectives
                 verb = term
             elif term in nouns:
                 noun = term
             elif term in adjectives:
                 adjective = term
-            else:
+            else: #If nothing is found from a term, check whether or not item is described partially, preferring ones with matching adjectives
                 matches = []
                 for sub in nouns:
                     if term in sub:
@@ -560,33 +640,36 @@ def main():
                 elif len(matches) == 1:
                     noun = matches[0]
                 else: #Multible objects with similar name discrepancy
-                    if debug and matches != []: print("\nMultible subjects found for term {}:".format(term))
+                    if debug and matches != []:
+                        print("=== Multible subjects found for term {}:".format(term))
+                        print("=== Adjective Matches: " + str(reverseAlias(adjective)))
+                        print("=== Checking matches for adjective {}.".format(adjective))
                     for match in matches:
-                        if debug:
-                            print("Possible Subject:" + str(match))
-                            print("Checking matches for adjective {}.".format(adjective))
-                            print(reverseAlias(adjective))
+                        if debug: print("=== Possible Subject: " + str(match))
                         for subAdjective in reverseAlias(adjective):
                             if subAdjective in match and len(subAdjective) != 1:
                                 noun = match
-                                if debug: print("Item {} matches adjective {}.".format(match, subAdjective))
+                                if debug: print("=== Item {} matches adjective {}.".format(match, subAdjective))
                     if noun == "None": #If no object can be found based on adjective, the first one is chosen by default.
-                        if debug : print("No exact match found, selecting first object, {}.".format(matches[0]))
+                        if debug : print("=== No exact match found, selecting first object, {}.".format(matches[0]))
                         noun = matches[0] #TODO : Maybe change to asking the player? 
 
 
         #Reasign strings to objects
         subject = Interactable("Nothing", "Nothing")
 
+        #Set Subject to Noun
         if noun != "None":
             subject = nouns[noun]
 
-        if noun == "self" and len(terms) == 1: #Inventory Commands
+        #"self" implied to mean "look at self" or "check inventory"
+        if noun == "self" and len(terms) == 1: 
             if verb == "None":
                 terms.append("look")
                 verb = "look"
 
-        if (verb == "look"): #Command of just "Look" designated to looking around
+        #"look" implied to mean "look at wall" or "look around"
+        if (verb == "look"): 
             if len(terms) == 1:
                 noun == "room"
                 subject = user.room
@@ -595,15 +678,21 @@ def main():
                         if type(item) == Wall:
                             if item.direction == adjective:
                                 subject = item
+
+        #"N" or similar implied to mean "move north"
+        if (noun == "none" and len(terms) == 1 and adjective in ["N", "E", "W", "S"]):
+            noun = "moves"
         
-        if debug: print("Verb:\t\t{}\nNoun:\t\t{}\nAdjective:\t{}".format(verb, noun, adjective))
-        if debug: print("Subject: {}\t".format(subject.name))
+        if debug: 
+            print("=== Verb:\t{}\n=== Noun:\t{}\n=== Adjective:\t{}.".format(verb, noun, adjective))
+            print("=== Subject: {}\t".format(subject.name))
 
         # Run Commands
         if (verb == "None"):
-            print("I don't understand that action.")
+            print("I don't understand that action. Type \"Help\" for assistance.")
 
         if (verb == "help"):
+            print("In the provided field, tell me what you do as simply as possible. For example, \"Look Left\" or \"Grab Sword\".")
             print("Suggested Actions: Look, Grab, Move, Use, Drop, Break")
 
         if (verb == "look"): #Run "Look"
@@ -655,6 +744,5 @@ def main():
             print(user.destroy(subject))
 
 main()
-
 
 
