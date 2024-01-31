@@ -47,6 +47,8 @@ There are also cases where multible targets are selected, for instance, "look at
 For example, "Open Oak Door" reconizes "Door" as the noun, sees "Oak Door" and "Steel Door" in room, and selects "Oak Door" from a reconized "Oak" adjective.
 
 For the purpose of debugging, the command "debug" can be run, which shows more informational data reguarding the series of events.
+
+TODO: Move this to readme?
 """
 
 ### ROOM SCHEMATIC
@@ -321,7 +323,7 @@ class Player(Interactable):
             if len(objectContents) == 1:
                 output += "\nInside the {}, you see a {}.".format(obj.name, objectContents[0].name)
             else:
-                output += "\nInside the {}, you see multible items:".format(obj.name)
+                output += "\nInside the {}, you see multible items:\n".format(obj.name)
                 for item in objectContents:
                     output += "\n-{}".format(item.name)
         return output
@@ -371,7 +373,7 @@ class Player(Interactable):
         elif len(self.contains) == 1:
             output += "You find a {}.".format(self.contains[0].name)
         else:
-            output += "You find the following items:\n"
+            output += "You find the following items:\n\n"
             for item in self.contains:
                 output += "-{}\n".format(item.name)
             output = output[:-1]
@@ -595,12 +597,18 @@ def main():
         print()
         response = input("> ")
         print()
-        if response == "quit" or response == "exit":
+        if response == "quit" or response == "exit": #Quit command
             continue
-        if response == "debug":
+        if response == "debug": #Debug Command
             print("Toggling debug mode")
             debug = not debug
             continue
+
+        response = response.lower()
+        for letter in response:
+            if not letter in "abcdefghijklmnopqrstuvwxyz ":
+                response = response.replace(letter, "")
+        
 
         verb = "None"
         noun = "None"
@@ -622,12 +630,16 @@ def main():
         #Parse Terms, Define Subjects
         terms = response.split() 
         for term in terms: 
+            if debug: print("=== Checking term [{}], with alias [{}].".format(term, getAlias(term)))
             term = getAlias(term)
             if term in verbs: #Locks in terms based off predefined verbs, nouns, and adjectives
+                if debug: print("=== Assigning term [{}] to verb.".format(term))
                 verb = term
             elif term in nouns:
+                if debug: print("=== Assigning determ [{}] to noun.".format(term))
                 noun = term
             elif term in adjectives:
+                if debug: print("=== Assigning term [{}] to adjective.".format(term))
                 adjective = term
             else: #If nothing is found from a term, check whether or not item is described partially, preferring ones with matching adjectives
                 matches = []
@@ -641,9 +653,9 @@ def main():
                     noun = matches[0]
                 else: #Multible objects with similar name discrepancy
                     if debug and matches != []:
-                        print("=== Multible subjects found for term {}:".format(term))
+                        print("=== Multible subjects found for term [{}]:".format(term))
                         print("=== Adjective Matches: " + str(reverseAlias(adjective)))
-                        print("=== Checking matches for adjective {}.".format(adjective))
+                        print("=== Checking matches for adjective [{}].".format(adjective))
                     for match in matches:
                         if debug: print("=== Possible Subject: " + str(match))
                         for subAdjective in reverseAlias(adjective):
