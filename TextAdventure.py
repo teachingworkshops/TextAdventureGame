@@ -426,7 +426,6 @@ def makePath(rpath):
     return os.path.join(bpath, rpath)
 
 CSVFILEPATH = makePath("aliases.csv")
-
 aliases = {}
 with open(CSVFILEPATH, "r") as f: #CSV File Reading
     for line in f:
