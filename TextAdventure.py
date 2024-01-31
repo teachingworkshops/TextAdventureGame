@@ -1,3 +1,5 @@
+import sys
+import os
 """
 There are two primary systems to this text adventure game, the objects, and the text engine.
 
@@ -414,10 +416,18 @@ class Key(Interactable):
         self.target = obj
 
 ### ------------------------------------------------------------------
-
 # Text Processing : Condenses several words on CSV file to small set of possible terms
+
+def makePath(rpath):
+    try:
+        bpath = sys._MEIPASS
+    except AttributeError:
+        bpath = os.path.abspath(".")
+    return os.path.join(bpath, rpath)
+
+CSVFILEPATH = makePath("aliases.csv")
 aliases = {}
-with open("aliases.csv", "r") as f: #CSV File Reading
+with open(CSVFILEPATH, "r") as f: #CSV File Reading
     for line in f:
         dat = line[:-1].split(",")
         aliases[dat[0]] = dat[1]
