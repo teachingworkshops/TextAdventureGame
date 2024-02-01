@@ -35,10 +35,11 @@ If you'd like to contribute to this project, feel free to fork the repository, m
 =======
 ## Credits
 Software Engineering StudyGroup 6
-	Kyle Meade
-	Jack Htay
-	Andi Peri
-	Adam Diller
+	
+- Kyle Meade
+- Jack Htay
+- Andi Peri
+- Adam Diller
 
 
 ## License
