@@ -3,7 +3,9 @@
 Welcome to Text Adventure! This is a simple text-based adventure game where you navigate through various rooms, interact with objects, and try to find the secret gold bar.
 
 ## Getting Started
-To play the game, follow these steps:
+To play the game, you can run the executable provided, TextAdventure.txt.
+
+To play the game with the benefit of looking at the code, follow these steps:
 
 Clone or download the repository to your local machine.
 Make sure you have Python installed on your system.
