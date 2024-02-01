@@ -27,6 +27,7 @@ Here are some basic commands to get you started:
 - drop: Drop an item from your inventory.
 - destroy: Destroy certain objects in the room.
 
+
 ## Contributing
 If you'd like to contribute to this project, feel free to fork the repository, make your changes, and submit a pull request. Contributions, suggestions, and bug reports are welcome!
 
