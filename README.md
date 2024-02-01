@@ -31,5 +31,15 @@ Here are some basic commands to get you started:
 ## Contributing
 If you'd like to contribute to this project, feel free to fork the repository, make your changes, and submit a pull request. Contributions, suggestions, and bug reports are welcome!
 
+
+=======
+## Credits
+Software Engineering StudyGroup 6
+	Kyle Meade
+	Jack Htay
+	Andi Peri
+	Adam Diller
+
+
 ## License
 This project is licensed under the Creative Commons Zero v1.0 Universal.
