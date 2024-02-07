@@ -1,29 +1,115 @@
  + World                                             Interactable
-... + Living Room                                    Room
+... + Simone's Cell                                  Room
 ...... + North Wall                                  Wall
 ...... + East Wall                                   Wall
-......... + Metal Door                               Door
-...... + South Wall                                  Wall
-......... + Oak Door                                 Door
+...... + South Bars                                  Wall
+......... + Red Door                                 Door
 ...... + West Wall                                   Wall
-......... + Brass Key                                Key
-...... + Self                                        Player
-... + Dining Room                                    Room
-...... + Wooden Chair                                Interactable
-...... + Wooden Crate                                Interactable
-......... - Broken Crate                             Interactable
-............ + Silvered Sword                        Interactable
-...... + Red Wall                                    Wall
-......... + Oak Door                                 Door
-...... + Yellow Wall                                 Wall
-...... + Blue Wall                                   Wall
-...... + Green Wall                                  Wall
-... + Bedroom                                        Room
-...... + North Wall                                  Wall
-...... + East Wall                                   Wall
-...... + West Wall                                   Wall
-......... + Metal Door                               Door
-...... + South Wall                                  Wall
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
 ...... + Bed                                         Interactable
-......... + Monster                                  Interactable
-............ - Gold Bar                              Interactable
+... + Janice's Cell                                  Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + South Bars                                  Wall
+......... + Orange Door                              Door
+...... + West Wall                                   Wall
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
+...... + Bed                                         Interactable
+... + Clara's Cell                                   Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + South Bars                                  Wall
+......... + Yellow Door                              Door
+...... + West Wall                                   Wall
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
+...... + Bed                                         Interactable
+... + Peter's Cell                                   Room
+...... + North Bars                                  Wall
+......... + Green Door                               Door
+...... + East Wall                                   Wall
+......... + Suspicious Poster                        Interactable
+............ - Hole                                  Door
+...... + South Wall                                  Wall
+...... + West Wall                                   Wall
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
+...... + Bed                                         Interactable
+... + Fredwynn's Cell                                Room
+...... + North Bars                                  Wall
+......... + Blue Door                                Door
+...... + East Wall                                   Wall
+...... + South Wall                                  Wall
+...... + West Wall                                   Wall
+......... + Hole                                     Door
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
+...... + Bed                                         Interactable
+......... + Tunnel                                   Door
+... + Your Cell                                      Room
+...... + North Bars                                  Wall
+......... + Purple Door                              Door
+...... + East Wall                                   Wall
+...... + South Wall                                  Wall
+...... + West Wall                                   Wall
+...... + Sink                                        Interactable
+...... + Toilet                                      Interactable
+...... + Your Bed                                    Interactable
+...... + Self                                        Player
+... + Prison Hall                                    Room
+...... + North Wall                                  Wall
+......... + Red Door                                 Door
+......... + Orange Door                              Door
+......... + Yellow Door                              Door
+...... + East Wall                                   Wall
+......... + Hallway Door                             Door
+...... + South Wall                                  Wall
+......... + Green Door                               Door
+......... + Blue Door                                Door
+......... + Purple Door                              Door
+...... + West Wall                                   Wall
+... + Mess Hall                                      Room
+...... + North Wall                                  Wall
+......... + Kitchen Door                             Door
+...... + East Wall                                   Wall
+......... + Closet Door                              Door
+......... + Office Door                              Door
+...... + South Wall                                  Wall
+......... + Mess Hall Door                           Door
+...... + West Wall                                   Wall
+......... + Hallway Door                             Door
+... + Kitchen                                        Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + South Wall                                  Wall
+......... + Kitchen Door                             Door
+...... + West Wall                                   Wall
+... + Supply Closet                                  Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + South Wall                                  Wall
+...... + West Wall                                   Wall
+......... + Closet Door                              Door
+...... + Wire Cutters                                Interactable
+... + Warden's Office                                Room
+...... + North Wall                                  Wall
+...... + East Wall                                   Wall
+...... + South Wall                                  Wall
+...... + West Wall                                   Wall
+......... + Office Door                              Door
+... + West Yard                                      Room
+...... + North Wall                                  Wall
+...... + East Fence                                  Wall
+...... + South Fence                                 Wall
+......... - Cut Fence                                Door
+...... + West Border                                 Wall
+...... + Tunnel                                      Door
+... + East Yard                                      Room
+...... + North Wall                                  Wall
+......... + Mess Hall Door                           Door
+...... + East Border                                 Wall
+...... + South Fence                                 Wall
+...... + West Fence                                  Wall
+... + The Free Land                                  Room

@@ -1,5 +1,6 @@
 import sys
 import os
+
 """
 There are two primary systems to this text adventure game, the objects, and the text engine.
 
@@ -76,6 +77,8 @@ class Interactable:
             Removes item from interactable's container.
         removeSelf(subject):
             Removes self from any item contained within subject and its subcontainers.
+        replaceSelf(subject, replaceObj):
+            Removes self from any item contained within subject and its subcontainers, and replaces any instances.
         use(player):
             Has player "use" item, defaulted in returning useCase.
         destroy(player):
@@ -83,7 +86,7 @@ class Interactable:
 
     """
 
-    def __init__(self, name = "Unanmed Object", description = "Unnamed Description", takeAble = False, customUseText = "", breakAble = False, brakeContent = 0, breakKey = 0):
+    def __init__(self, name = "Unanmed Object", description = "Unnamed Description", takeAble = False, customUseText = "", breakAble = False, breakContent = 0, breakKey = 0):
         self.name = name
         self.description = description
         self.contains = []
@@ -92,7 +95,7 @@ class Interactable:
         if customUseText == "":
             self.useCase = "You can't interact with {}.".format(self.name)
         self.takeAble = takeAble
-        self.brokenItem = brakeContent
+        self.brokenItem = breakContent
         self.breakKey = breakKey
         
     def __str__(self):
@@ -136,15 +139,39 @@ class Interactable:
                 self.removeSelf(subobject)
         return
 
+    def replaceSelf(self, subject, replaceObj):
+        """
+        Searches for instnaces of self within container of "subject" as well as subcontainers, and replaces instances with replaceObj.
+
+        Parameters:
+            subject (Interactable): The container holder of which to be searched.
+            replaceObj (Interactable): The item of which to be replaced.
+        """
+        if self in subject.contains:
+            if debug: print("=== Replacing {} with {} in {}.".format(self.name, replaceObj.name, subject.name))
+            subject.remove(self)
+            subject.add(replaceObj)
+            return
+        if self in inContainer(subject):
+            for subobject in subject.contains:
+                self.replaceSelf(subobject, replaceObj)
+        return
+
     def use(self, player = 0):
         """
-        Executes when Player "uses" Interactable, returns "useCase" text.
+        Executes when Player "uses" Interactable. If an object can be broken in the same room as the player, break object.
+        Otherwise returns "useCase" text.
 
         Parameters:
             player (Player): The player running the action.
         """
         if player == 0:
             return "Who is using the {}?".format(self.name)
+        
+        for item in inContainer(player.room):
+            if item.breakKey == self:
+                return player.destroy(item)
+
         return self.useCase
     
     def destroy(self, player = 0):
@@ -164,22 +191,37 @@ class Interactable:
 
         if player == 0:
             return "Who is breaking the {}?".format(self.name) #No Player
+        elif self.name == "Nothing":
+            return "You can't break that."
         elif not self.breakAble:
             return "You can't break the {}.".format(self.name) #Not Breakable
         elif self.breakKey == 0: #Breakable without item
-            self.removeSelf(player.room)
             if self.brokenItem != 0:
-                player.room.add(self.brokenItem)
+                self.replaceSelf(player.room, self.brokenItem)
                 return "You destroy the {}, leaving behind a {}.".format(self.name, self.brokenItem.name) #Holds item
+            self.removeSelf(player.room)
             return "You destroy the {}.".format(self.name) #Doesn't hold item
         elif not self.breakKey in player.contains: #Breakable with item
             return "You need a {} to break the {}.".format(self.breakKey.name, self.name) #Player does not have item
         else:
-            self.removeSelf(player.room)
             if self.brokenItem != 0:
-                player.room.add(self.brokenItem)
+                self.replaceSelf(player.room, self.brokenItem)
                 return "You destroy the {} with the {}, leaving behind a {}.".format(self.name, self.breakKey.name, self.brokenItem.name) #Holds item
+            self.removeSelf(player.room)
             return "You destroy the {} with the {}.".format(self.name, self.breakKey.name) #Doesn't hold item
+
+    def getParent(self, searchParent): #Currently UNUSED
+        """
+        Returns item with "Self" in container. Searches recursively.
+
+        Parameters:
+            searchParent (Interactable): Object to search for self within.
+        """
+        if self in searchParent:
+            return self
+        else:
+            for item in searchParent:
+                return self.getParent(self, item)
 
 class Room(Interactable):
     """
@@ -189,8 +231,8 @@ class Room(Interactable):
         x (int): X coordinate of room (Currently UNUSED)
         y (int): Y coordinate of room (Currently UNUSED)
     """
-    def __init__(self, name = "Unnamed Room", description = "Empty Room", x = 0, y = 0):
-        super().__init__(name, description)
+    def __init__(self, name = "Unnamed Room", description = "Empty Room", x = 0, y = 0, takeAble = False, breakAble = False, breakContent = 0, breakKey = 0):
+        super().__init__(name, description, takeAble = takeAble, breakAble = breakAble, breakContent = breakContent, breakKey = breakKey)
         self.worldX = 0; #Location in world
         self.worldY = 0; #Location in world
     
@@ -202,8 +244,8 @@ class Wall(Interactable):
         Direction (string): Direction of the wall. Has to be "N", "E", "S", or "W"
 
     """
-    def __init__(self, name = "Unnamed Wall", description = "Blank Wall", direction = "N"):
-        super().__init__(name, description)
+    def __init__(self, name = "Unnamed Wall", description = "Blank Wall", direction = "N", takeAble = False, breakAble = False, breakContent = 0, breakKey = 0):
+        super().__init__(name, description, takeAble = takeAble, breakAble = breakAble, breakContent = breakContent, breakKey = breakKey)
         self.direction = direction #Directions - Can be N, E, W, or S
     
 class Door(Interactable):
@@ -224,8 +266,8 @@ class Door(Interactable):
         
     """
 
-    def __init__(self, name = "Unnamed Door", description = "Blank Door", key = 0, destination = 0):
-        super().__init__(name, description)
+    def __init__(self, name = "Unnamed Door", description = "Blank Door", key = 0, destination = 0, takeAble = False, breakAble = False, breakContent = 0, breakKey = 0):
+        super().__init__(name, description, takeAble = takeAble, breakAble = breakAble, breakContent = breakContent, breakKey = breakKey)
         self.key = key
         self.destination = destination
     
@@ -318,25 +360,55 @@ class Player(Interactable):
         if obj == self:
             return self.checkInventory()
 
-        output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
-        objectContents = obj.contains.copy()
-        if self in objectContents: objectContents.remove(self)
-        if (objectContents != []):
-            if len(objectContents) == 1:
-                output += "\nInside the {}, you see a {}.".format(obj.name, objectContents[0].name)
-            else:
-                output += "\nInside the {}, you see multible items:\n".format(obj.name)
-                for item in objectContents:
-                    output += "\n-{}".format(item.name)
+
+        if type(obj) == Room:
+            output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
+            
+            for item in obj.contains:
+                if type(item) == Wall:
+                    if item.direction == "N":
+                        output += "\n - To the North, you see a {}. {}".format(item.name, item.description)
+                    elif item.direction == "E":
+                        output += "\n - To the East, you see a {}. {}".format(item.name, item.description)
+                    elif item.direction == "W":
+                        output += "\n - To the West, you see a {}. {}".format(item.name, item.description)
+                    elif item.direction == "S":
+                        output += "\n - To the South, you see a {}. {}".format(item.name, item.description)
+                    
+                    if len(item.contains) == 1:
+                        output += "\n - - On the {}, you see a {}. {}".format(item.name, item.contains[0].name, item.contains[0].description)
+                    elif len(item.contains) > 1:
+                        output += "\n - - On the {}, you see the following items:".format(item.name)
+                        for subitem in item.contains:
+                            output += "\n - - - {}".format(subitem.name)
+        else:
+            output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
+            objectContents = obj.contains.copy()
+            if self in objectContents: objectContents.remove(self)
+            if (objectContents != []):
+                inOn = "Inside" #Switches descriptor used
+                if type(obj) == Wall:
+                    inOn = "On"
+                if len(objectContents) == 1:
+                    output += "\n{} the {}, you see a {}.".format(inOn, obj.name, objectContents[0].name)
+                else:
+                    output += "\n{} the {}, you see multible items:\n".format(inOn, obj.name)
+                    for item in objectContents:
+                        output += "\n-{}".format(item.name)
+
+
+
         return output
     
     def use(self, obj):
+        if obj == self:
+            return self.checkInventory()
         if obj.name == "Nothing":
             return "You can't use that."
         elif obj.takeAble and not obj in self.contains:
             return "You need to pick up the {} first.".format(obj.name)
         else:
-            return obj.use(player = self)
+            return obj.use(self)
     
     def unlock(self, obj):
         if obj.name == "Nothing":
@@ -395,8 +467,8 @@ class Key(Interactable):
             Moves player through door.
     """
 
-    def __init__(self, name = "Unnamed Door", description = "Blank Door", target = 0, takeAble = True):
-        super().__init__(name, description, takeAble)
+    def __init__(self, name = "Unnamed Door", description = "Blank Door", target = 0, takeAble = True, breakAble = False, breakContent = 0, breakKey = 0):
+        super().__init__(name, description, takeAble = takeAble, breakAble = breakAble, breakContent = breakContent, breakKey = breakKey)
         self.target = target
 
     def use(self, player = 0):
@@ -416,8 +488,8 @@ class Key(Interactable):
         self.target = obj
 
 ### ------------------------------------------------------------------
-# Text Processing : Condenses several words on CSV file to small set of possible terms
 
+# Text Processing : Condenses several words on CSV file to small set of possible terms
 def makePath(rpath):
     try:
         bpath = sys._MEIPASS
@@ -426,6 +498,7 @@ def makePath(rpath):
     return os.path.join(bpath, rpath)
 
 CSVFILEPATH = makePath("aliases.csv")
+
 aliases = {}
 with open(CSVFILEPATH, "r") as f: #CSV File Reading
     for line in f:
@@ -460,7 +533,7 @@ def reverseAlias(text):
         items (list): List of found reverse-searched strings.
     '''
 
-    output = []
+    output = [text]
     for alias in aliases:
         if aliases[alias] == text:
             output.append(alias)
@@ -503,7 +576,7 @@ def generateWorld(returnPlayer = True):
     brassKey = Key("Brass Key", "It's slightly rusted. You're not sure if brass can rust.", takeAble = True)
     chair = Interactable("Wooden Chair", "It looks uncomfortable.", takeAble = True, customUseText = "You sit in the chair. It feels awful.", breakAble = True)
     broken_crate = Interactable("Broken Crate", "The crate has been broken open.", takeAble = True, customUseText = "It's not useful anymore.")
-    crate = Interactable("Wooden Crate", "There doesn't look like a way to open this.", takeAble = True, customUseText = "You need to break this to see what is inside.", breakAble = True, brakeContent = broken_crate)
+    crate = Interactable("Wooden Crate", "There doesn't look like a way to open this.", takeAble = True, customUseText = "You need to break this to see what is inside.", breakAble = True, breakContent = broken_crate)
     sword = Interactable("Silvered Sword", "An honored family blade, kept in pristine condition", takeAble = True, customUseText = "The sword feels good in your hands.")
     
     #Put items in their locations
@@ -523,7 +596,7 @@ def generateWorld(returnPlayer = True):
     #Creates bedroom objects
     Bed = Interactable("Bed", "It looks comfy.", takeAble = False, customUseText = "The bed is occupied.")
     GoldBar = Interactable("Gold Bar", "A very expensive golden bar.", customUseText = "You win!", takeAble = True)
-    Monster = Interactable("Monster", "A scary guy, sleeping in the bed.", customUseText = "It doesn't want to be bothered.", breakAble = True, breakKey = sword, brakeContent = GoldBar)
+    Monster = Interactable("Monster", "A scary guy, sleeping in the bed.", customUseText = "It doesn't want to be bothered.", breakAble = True, breakKey = sword, breakContent = GoldBar)
 
     #Adds bedroom objects to bedroom
     Bed.add(Monster)
@@ -553,6 +626,194 @@ def generateWorld(returnPlayer = True):
     if returnPlayer: return user
     return world
 
+def generateWorld2(returnPlayer = True): #TODO : Consolidate into JSON format maybe
+    """
+    Generates a more complicated world.
+    """
+    #Generate Rooms and Walls
+    r_Freedom = Room("The Free Land", "You can do whatever you want here. You're free!")
+
+    i_sink = Interactable("Sink", "It's barely hygenic.", customUseText = "You wash your hands. The water is cold.")
+    i_toilet = Interactable("Toilet", "Looks gross.", customUseText = "You don't feel like using the bathroom right now.")
+    i_bed = Interactable("Bed", "It looks like someone left it in a hurry.", customUseText = "You don't need to nap right now.")
+
+    r_Simone = Room("Simone's Cell", "It looks dreary in here. The light above you flickers.", 0, 4)
+    w_n_Simone = Wall("North Wall", "It's made up of grey concrete blocks, with little tallies etched in the side.", "N")
+    w_e_Simone = Wall("East Wall", "This foot of concrete is what seperates Simone and Janice.", "E")
+    w_s_Simone = Wall("South Bars", "Through the bars, you can see the main hallway. Not much of it though.", "S")
+    w_w_Simone = Wall("West Wall", "There's an imprint on the wall where a window used to be.", "W")
+    
+    r_Simone.add([w_n_Simone, w_e_Simone, w_s_Simone, w_w_Simone, i_sink, i_toilet, i_bed])
+
+    r_Janice = Room("Janice's Cell", "Despite having the same layout as every other cell here, Janice's eminates a warmth you can't describe.", 1, 4)
+    w_n_Janice = Wall("North Wall", "There is a chalk drawing on the wall, featuring a meadow on a bright blue day.", "N")
+    w_e_Janice = Wall("East Wall", "On the other side of this wall is Clara's room.", "E")
+    w_s_Janice = Wall("South Bars", "The bars here are the least rusty of all the rooms.", "S")
+    w_w_Janice = Wall("West Wall", "This foot of concrete is what seperates Janice and Simone. ", "W")
+    r_Janice.add([w_n_Janice, w_e_Janice, w_s_Janice, w_w_Janice, i_sink, i_toilet, i_bed])
+
+    r_Clara = Room("Clara's Cell", "This room feels emptier than the rest of the others.", 2, 4)
+    w_n_Clara = Wall("North Wall", "There is nothing of note on the north wall.", "N")
+    w_e_Clara = Wall("East Wall", "You could probrably hear the mess hall through this.", "E")
+    w_s_Clara = Wall("South Bars", "The bars here are slightly dented from repeated cup rattles.", "S")
+    w_w_Clara = Wall("West Wall", "Janice's room is on the other side", "W")
+    r_Clara.add([w_n_Clara, w_e_Clara, w_s_Clara, w_w_Clara, i_sink, i_toilet, i_bed])
+
+    r_Peter = Room("Peter's Cell", "A well kept and organized cell. He even has a poster on the right side of the wall.", 0, 1)
+    w_n_Peter = Wall("North Bars", "You can see Simone's room through the bars.", "N")
+    w_e_Peter = Wall("East Wall", "The wall seems less durable than the others.", "E")
+    w_s_Peter = Wall("South Wall", "Behind this wall is the outside area.", "S")
+    w_w_Peter = Wall("West Wall", "The wall is slightly chipped.", "W")
+    i_poster = Interactable("Suspicious Poster", "This poster wasn't always here...", customUseText = "The poster is stuck tight on the wall. You might need to break it.", breakAble = True, breakContent = 0)
+    w_e_Peter.add(i_poster)
+    r_Peter.add([w_n_Peter, w_e_Peter, w_s_Peter, w_w_Peter, i_sink, i_toilet, i_bed])
+
+    r_Fredwynn = Room("Fredwynn's Cell", "This cell is the most disorganized cell in the entire prison.", 1, 1)
+    w_n_Fredwynn = Wall("North Bars", "You can see the whole hall from here.", "N")
+    w_e_Fredwynn = Wall("East Wall", "Your room is on the other side.", "E")
+    w_s_Fredwynn = Wall("South Wall", "The concrete looks as unbreakable as ever.", "S")
+    w_w_Fredwynn = Wall("West Wall", "This wall seems less durable than the others.", "W")
+    i_Fredwynn_bed = Interactable("Bed", "This bed seems slightly out of place...")
+    r_Fredwynn.add([w_n_Fredwynn, w_e_Fredwynn, w_s_Fredwynn, w_w_Fredwynn, i_sink, i_toilet, i_Fredwynn_bed])
+
+    r_You = Room("Your Cell", "It does not feel like home.", 2, 1)
+    w_n_You = Wall("North Bars", "Through the bars, you can see the open hallway.", "N")
+    w_e_You = Wall("East Wall", "Sometimes, you hear the mess hall through the wall.", "E")
+    w_s_You = Wall("South Wall", "The outside feels so close, yet so far.", "S")
+    w_w_You = Wall("West Wall", "You often heard scraping sounds through this wall.", "W")
+    i_You_bed = Interactable("Your Bed", "It's always uncomfortable.", customUseText = "You can't go back to sleep now! You'll miss your escape window!")
+    r_You.add([w_n_You, w_e_You, w_s_You, w_w_You, i_sink, i_toilet, i_You_bed])
+
+    r_Hallway = Room("Prison Hall", "The dimly lit hall doesn't provide any fun memories. On the north side are Simone, Janice, and Clara's cells. On the south side are Peter, Fredwynn, and your cells. The exit is to the right.", 0, 2)
+    w_n_Hallway = Wall("North Wall", "The north side of the hall holds the women prisoners.", "N")
+    w_e_Hallway = Wall("East Wall", "The large concrete wall seems intimidating.", "E")
+    w_s_Hallway = Wall("South Wall", "The south side of the hall holds the male prisoners, and you.", "S")
+    w_w_Hallway = Wall("West Wall", "The best parts of your day are past this wall.", "W")
+    r_Hallway.add([w_n_Hallway, w_e_Hallway, w_s_Hallway, w_w_Hallway])
+
+    r_MessHall = Room("Mess Hall", "A large dining hall, filled with tables and chairs. Many fights started here.", 3, 1)
+    w_n_MessHall = Wall("North Wall", "The kitchen can normally be accessed here, but the shutters are closed right now.", "N")
+    w_e_MessHall = Wall("East Wall", "Every room on the other side of this wall has always been heavily secured.", "E")
+    w_s_MessHall = Wall("South Wall", "There are several reinforced windows on this side, showing the outside.", "S")
+    w_w_MessHall = Wall("West Wall", "This wall is a constant reminder of your cell on the other side.", "W")
+    r_MessHall.add([w_n_MessHall, w_e_MessHall, w_s_MessHall, w_w_MessHall])
+
+    r_Kitchen = Room("Kitchen", "This is where the worst food you've ever had is made", 3, 5)
+    w_n_Kitchen = Wall("North Wall", "There are a lot of cooking tools hanging on this wall. None of them sharp or heavy though.", "N")
+    w_e_Kitchen = Wall("East Wall", "There are several posters of health regulations on this wall. None of them were ever followed.", "E")
+    w_s_Kitchen = Wall("South Wall", "This side of the room has several serving trays ready to be filled with food.", "S")
+    w_w_Kitchen = Wall("West Wall", "The sinks on this wall likely recycled water from the prisoners toilets.", "W")
+    r_Kitchen.add([w_n_Kitchen, w_e_Kitchen, w_s_Kitchen, w_w_Kitchen])
+
+    r_Closet = Room("Supply Closet", "Most contriband is kept in here.", 6, 3)
+    w_n_Closet = Wall("North Wall", "The closeness of the wall makes you uncomfortable.", "N")
+    w_e_Closet = Wall("East Wall", "This wall is the only defense between the prisoners and all the contriband.", "E")
+    w_s_Closet = Wall("South Wall", "The wall is sligtly wet from a leak in the ceiling.", "S")
+    w_w_Closet = Wall("West Wall", "All of the goodies are on here.", "W")
+    r_Closet.add([w_n_Closet, w_e_Closet, w_s_Closet, w_w_Closet])
+
+    r_Warden = Room("Warden's Office", "This room feels larger on the inside. It reeks of cigar smoke.", 6, 1)
+    w_n_Warden = Wall("North Wall", "A large mural of an eagle stares down at you.", "N")
+    w_e_Warden = Wall("East Wall", "Several security camera feeds are displayed on this wall. They are all disabled.", "E")
+    w_s_Warden = Wall("South Wall", "This wall is considerably darker than the rest.", "S")
+    w_w_Warden = Wall("West Wall", "A one-way mirror shows a good view of the mess hall.", "W")
+    r_Warden.add([w_n_Warden, w_e_Warden, w_s_Warden, w_w_Warden])
+
+    r_OutsideWest = Room("West Yard", "The grass is greener on this side of the fence.", 0, 0)
+    w_n_OutsideWest = Wall("North Wall", "The large, stone wall of the prison is very intimidating.", "N")
+    w_e_OutsideWest = Wall("East Fence", "You can see the main lot through here. It looks colder from the other side.", "E")
+    d_CutFence = Door("Cut Fence", "There's a hole big enough to pass through", destination = r_Freedom)
+    w_s_OutsideWest = Wall("South Fence", "The fence on this side is less reinforced.", direction = "S", breakAble = True, breakContent = d_CutFence)
+    w_w_OutsideWest = Wall("West Border", "You can see the empty parking lot through this fence", "W")
+    r_OutsideWest.add([w_n_OutsideWest, w_e_OutsideWest, w_s_OutsideWest, w_w_OutsideWest])
+
+    r_OutsideEast = Room("East Yard", "The general population yard was always much more roudy than the lot on the left.", 3, 0)
+    w_n_OutsideEast = Wall("North Wall", "This entrance was always heavily monitored, as contriband was typically slipped through the East Yard.", "N")
+    w_e_OutsideEast = Wall("East Border", "Despite being only chain links, the fence is heavily reinforced.", "E")
+    w_s_OutsideEast = Wall("South Fence", "There is nothing but deep woods on the other side of this fence. Barbed wire stops you from trying to climb it.", "S")
+    w_w_OutsideEast = Wall("West Fence", "On the other side you can see the nicer east yard. The fences over there look much less secure.", "W")
+    r_OutsideEast.add([w_n_OutsideEast, w_e_OutsideEast, w_s_OutsideEast, w_w_OutsideEast])
+
+    #Connect rooms with doors
+    d_in_Simone = Door("Red Door", "A basic cell door. It goes to Simone's room.", key = 0, destination = r_Simone)
+    w_n_Hallway.add(d_in_Simone)
+    d_out_Simone = Door("Red Door", "A basic cell door. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_s_Simone.add(d_out_Simone)
+
+    d_in_Janice = Door("Orange Door", "A basic cell door. It leads to Janice's room.", key = 0, destination = r_Janice)
+    w_n_Hallway.add(d_in_Janice)
+    d_out_Janice = Door("Orange Door", "A basic cell door. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_s_Janice.add(d_out_Janice)
+
+    d_in_Clara = Door("Yellow Door", "A basic cell door. It goes to Clara's room.", key = 0, destination = r_Clara)
+    w_n_Hallway.add(d_in_Clara)
+    d_out_Clara = Door("Yellow Door", "A basic cell door. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_s_Clara.add(d_out_Clara)
+
+    d_in_Peter = Door("Green Door", "A basic cell door. It goes to Peter's room.", key = 0, destination = r_Peter)
+    w_s_Hallway.add(d_in_Peter)
+    d_out_Peter = Door("Green Door", "A basic cell door. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_n_Peter.add(d_out_Peter)
+
+    d_in_Fredwynn = Door("Blue Door", "A basic cell door. It goes to Fredwynn's room.", key = 0, destination = r_Hallway)
+    w_s_Hallway.add(d_in_Fredwynn)
+    d_out_Fredwynn = Door("Blue Door", "A basic cell door. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_n_Fredwynn.add(d_out_Fredwynn)
+
+    d_in_You = Door("Purple Door", "A basic cell door. It's yours.", key = 0, destination = r_You)
+    w_s_Hallway.add(d_in_You)
+    d_out_You = Door("Purple Door", "You've stared at this door for countless hours. It goes to the Hallway.", key = 0, destination = r_Hallway)
+    w_n_You.add(d_out_You)
+
+    d_in_Hallway = Door("Hallway Door", "A large set of double doors.", key = 0, destination = r_Hallway)
+    w_w_MessHall.add(d_in_Hallway)
+    d_out_Hallway = Door("Hallway Door", "A large set of double doors.", key = 0, destination = r_MessHall)
+    w_e_Hallway.add(d_out_Hallway)
+
+    d_in_Kitchen = Door("Kitchen Door", "A large, swinging door.", key = 0, destination = r_Kitchen)
+    w_n_MessHall.add(d_in_Kitchen)
+    d_out_Kitchen = Door("Kitchen Door", "A large, swinging door", key = 0, destination = r_MessHall)
+    w_s_Kitchen.add(d_out_Kitchen)
+
+    d_in_Closet = Door("Closet Door", "A small door with a hefty lock on it.", key = 0, destination = r_Closet)
+    w_e_MessHall.add(d_in_Closet)
+    d_out_Closet = Door("Closet Door", "A small door with a hefty lock on it.", key = 0, destination = r_MessHall)
+    w_w_Closet.add(d_out_Closet)
+
+    d_in_Warden = Door("Office Door", "An ornate, steel door.", key = 0, destination = r_Warden)
+    w_e_MessHall.add(d_in_Warden)
+    d_out_Warden = Door("Office Door", "An ornate, steel door.", key = 0, destination = r_Warden)
+    w_w_Warden.add(d_out_Warden)
+
+    d_in_MessHall = Door("Mess Hall Door", "A large set of double doors, heavily locked.", key = 0, destination = r_MessHall)
+    w_n_OutsideEast.add(d_in_MessHall)
+    d_out_MessHall = Door("Mess Hall Door", "A large set of double doors, heavily locked.", key = 0, destination = r_OutsideEast)
+    w_s_MessHall.add(d_out_MessHall)
+
+    d_poster_in = Door("Hole", "A suspicious tunnel, leading to Fredwynn's room.", key = 0, destination = r_Fredwynn)
+    i_poster.brokenItem = d_poster_in
+    d_poster_out = Door("Hole", "A suspicious tunnel, leading to Peter's room.", key = 0, destination = r_Peter)
+    w_w_Fredwynn.add(d_poster_out)
+
+    d_tunnel_in = Door("Tunnel", "A suspicious tunnel, leading to Fredwynn's room.", key = 0, destination = r_Fredwynn)
+    d_tunnel_out = Door("Tunnel", "A suspicious tunnel, leading to Peter's room.", key = 0, destination = r_OutsideWest)
+    r_OutsideWest.add(d_tunnel_in)
+    i_Fredwynn_bed.add(d_tunnel_out)
+
+    i_wireCutter = Interactable("Wire Cutters", "A sturdy wire cutter. Could be used to cut open a weak fence.", takeAble = True, customUseText = "You can't cut anything here.")
+    r_Closet.add(i_wireCutter)
+    w_s_OutsideWest.breakKey = i_wireCutter
+
+    user = Player("Self", "It's you! Very good looking!")
+    r_You.add(user)
+    user.setRoom(r_You)
+
+    world = Interactable("World", "Contains Everything")
+    world.add([r_Simone, r_Janice, r_Clara, r_Peter, r_Fredwynn, r_You, r_Hallway, r_MessHall, r_Kitchen, r_Closet, r_Warden, r_OutsideWest, r_OutsideEast, r_Freedom])
+
+    if returnPlayer: return user
+    return world
+
 # ------------------------------------------------------------------------------------------
 
 #Helper object methods
@@ -567,7 +828,6 @@ def inContainer(obj, recursive = True):
     Returns:
         items (list): List of found objects within obj.
     '''
-    
     items = []
     for item in obj.contains:
         if recursive:    
@@ -594,7 +854,7 @@ def objectTree(obj, depth = 0, hidden = False):
 
 #Main Game Loop
 def main():
-    user = generateWorld()
+    user = generateWorld2()
 
     global debug
     debug = False
@@ -627,7 +887,7 @@ def main():
         #Define Possible Actions
         verbs = ["help", "look", "grab", "move", "use", "unlock", "drop", "destroy"] #Possible actions
         nouns = {"room" : user.room}
-        adjectives = ["N", "E", "W", "S", "red", "yellow", "green", "blue", "oak", "metal", "broken"]
+        adjectives = ["N", "E", "W", "S", "red", "yellow", "orange", "green", "blue", "purple", "oak", "metal", "broken"]
         for item in inContainer(user.room): #"Load" objects in room
             nouns[item.name.lower()] = item
 
@@ -653,10 +913,10 @@ def main():
                 adjective = term
             else: #If nothing is found from a term, check whether or not item is described partially, preferring ones with matching adjectives
                 matches = []
-                for sub in nouns:
-                    if term in sub:
-                        matches.append(sub)
-                        #Defaults similar named objects
+                for possibleTerm in reverseAlias(term):
+                    for sub in nouns: #Check partially named objects
+                        if possibleTerm in sub:
+                            matches.append(sub)
                 if len(matches) == 0: #No objects found
                     pass
                 elif len(matches) == 1:
@@ -702,11 +962,11 @@ def main():
                                 subject = item
 
         #"N" or similar implied to mean "move north"
-        if (noun == "none" and len(terms) == 1 and adjective in ["N", "E", "W", "S"]):
-            noun = "moves"
+        if (noun == "None" and len(terms) == 1 and adjective in ["N", "E", "W", "S"]):
+            verb = "move"
         
         if debug: 
-            print("=== Verb:\t{}\n=== Noun:\t{}\n=== Adjective:\t{}.".format(verb, noun, adjective))
+            print("=== Verb:\t{}\n=== Noun:\t{}\n=== Adjective:\t{}".format(verb, noun, adjective))
             print("=== Subject: {}\t".format(subject.name))
 
         # Run Commands
@@ -732,19 +992,19 @@ def main():
                                 subject = item
                     
                 else:
-                    print("You can't move there.") 
+                    print("You can't move there.")
 
             if type(subject) == Wall: # Case like "Move South"
                 for obj in inContainer(subject):
                     if type(obj) == Door:
                         subject = obj
                         print(user.move(subject))
-                        continue
+                        break
                 if type(subject) != Door:
                     print("There is no door on the {}.".format(subject.name))
             elif type(subject) == Door: # Case like "Move through Door"
                 print(user.move(subject))
-            else:
+            elif subject.name != "Nothing":
                 print("You can't move that.")
 
         if (verb == "grab"): #Run "Grab"
@@ -767,4 +1027,5 @@ def main():
 
 main()
 
+#objectTree(generateWorld2(returnPlayer = False))
 
