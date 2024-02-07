@@ -24,17 +24,20 @@ Here are some basic commands to get you started:
 - look: Examine your surroundings or specific objects.
 - grab: Pick up an item in the room.
 - move: Move to another room or through doors.
-- use: Use an item in your inventory or in the room.
+- use: Use an item in your inventory or the room.
 - unlock: Attempt to unlock a door.
 - drop: Drop an item from your inventory.
 - destroy: Destroy certain objects in the room.
 
+## Game Map
+If you are having trouble navigating the game, please refer to this handy map:
+![World Map](https://github.com/meadekatwit/TextAdventure/blob/main/Prison%20Escape%20Text%20Adventure%20Map.png?raw=true)
 
 ## Contributing
 If you'd like to contribute to this project, feel free to fork the repository, make your changes, and submit a pull request. Contributions, suggestions, and bug reports are welcome!
 
 
-=======
+
 ## Credits
 Software Engineering StudyGroup 6
 	
