@@ -364,6 +364,7 @@ class Player(Interactable):
         if type(obj) == Room:
             output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
             
+            items = []
             for item in obj.contains:
                 if type(item) == Wall:
                     if item.direction == "N":
@@ -381,6 +382,18 @@ class Player(Interactable):
                         output += "\n - - On the {}, you see the following items:".format(item.name)
                         for subitem in item.contains:
                             output += "\n - - - {}".format(subitem.name)
+                
+                elif type(item) != Player:
+                    items.append(item)
+
+            if len(items) == 1:
+                output += "\n- Elsewhere in the {}, you see a {}. {}".format(obj.name, items[0].name, items[0].description)
+            
+            elif len(items) > 1:
+                output += "\n- Elsewhere in the {}, you see {} more items:".format(obj.name, str(len(items)))
+                for item in items:
+                    output += "\n - - {}".format(item.name)
+
         else:
             output = "You look at the {}. {}".format(obj.name, obj.description) #Nested items.
             objectContents = obj.contains.copy()
@@ -542,7 +555,7 @@ def reverseAlias(text):
 # Build Room -----------------------------------------------------------------------
 
 # Room creation - Currently manual but planned to be procedural.
-def generateWorld(returnPlayer = True):
+def generateWorld(returnPlayer = True): #TODO : Remove / Save to JSON
 
     """
     Generates a sample game world.
@@ -676,7 +689,7 @@ def generateWorld2(returnPlayer = True): #TODO : Consolidate into JSON format ma
     i_Fredwynn_bed = Interactable("Bed", "This bed seems slightly out of place...")
     r_Fredwynn.add([w_n_Fredwynn, w_e_Fredwynn, w_s_Fredwynn, w_w_Fredwynn, i_sink, i_toilet, i_Fredwynn_bed])
 
-    r_You = Room("Your Cell", "It does not feel like home.", 2, 1)
+    r_You = Room("Your Cell", "It does not feel like home. Someone left a note on your bed.", 2, 1)
     w_n_You = Wall("North Bars", "Through the bars, you can see the open hallway.", "N")
     w_e_You = Wall("East Wall", "Sometimes, you hear the mess hall through the wall.", "E")
     w_s_You = Wall("South Wall", "The outside feels so close, yet so far.", "S")
@@ -804,6 +817,9 @@ def generateWorld2(returnPlayer = True): #TODO : Consolidate into JSON format ma
     r_Closet.add(i_wireCutter)
     w_s_OutsideWest.breakKey = i_wireCutter
 
+    i_note = Interactable("Note", "It has the following text:\n\nDear You,\nSorry we didn't tell you our escape plan.\nHonestly we forgot your name.\nWe unlocked most the doors, you just need to\ncut the wire on the fence in the east lot.\n\nBest,\nPeter", takeAble = True, breakAble = True)
+    i_You_bed.add(i_note)
+
     user = Player("Self", "It's you! Very good looking!")
     r_You.add(user)
     user.setRoom(r_You)
@@ -859,7 +875,7 @@ def main():
     global debug
     debug = False
     
-    print("Welcome to Text Adventure! Type commands in the provided line to move yourself, interact with items, and hopefully find the secret gold bar!")
+    print("Welcome to Text Adventure! Type commands in the provided line to move yourself, interact with items, and hopefully escape the prison!")
     print("You should start by looking around the room you're in.")
 
     response = ""

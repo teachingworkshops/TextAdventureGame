@@ -41,6 +41,7 @@ check,look
 observe,look
 watch,look
 inspect,look
+read,look
 steel,metal
 grey,metal
 gray,metal
