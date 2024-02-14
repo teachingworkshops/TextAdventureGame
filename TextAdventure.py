@@ -592,11 +592,23 @@ def generateWorld(returnPlayer = True): #TODO : Remove / Save to JSON
     crate = Interactable("Wooden Crate", "There doesn't look like a way to open this.", takeAble = True, customUseText = "You need to break this to see what is inside.", breakAble = True, breakContent = broken_crate)
     sword = Interactable("Silvered Sword", "An honored family blade, kept in pristine condition", takeAble = True, customUseText = "The sword feels good in your hands.")
     
+    
+    portrait = Interactable("Portrait", "A lovely protrait of someone's dog.", takeAble=True)
+    flower = Interactable("Flower", "It is just a flower", takeAble=True)
+    window = Interactable("Window", "The window is hard to see through", takeAble=False)
+
+    
     #Put items in their locations
     broken_crate.add(sword)
     west_Living.add(brassKey)
     Dining.add(chair)
     Dining.add(crate)
+    
+    Dining.add(portrait)
+    Dining.add(window)
+
+    north_Living.add(flower)
+    east_Living.add(window)
     
     #Adds Walls to Rooms
     Living.add([north_Living, east_Living, south_Living, west_Living])
